@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Missão: Zero Desperdício — Fase 1</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #10151a;
+    --panel: #182128;
+    --panel2: #202c34;
+    --text: #f3f6f4;
+    --muted: #aab7b2;
+    --accent: #79c78b;
+    --accent2: #d9a85d;
+    --danger: #e77970;
+    --line: rgba(255,255,255,.10);
+    --shadow: 0 18px 45px rgba(0,0,0,.28);
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #26343a 0%, var(--bg) 58%);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  button { font: inherit; }
+  .app { max-width: 1180px; margin: 0 auto; padding: 18px; }
+  .topbar {
+    display: flex; gap: 14px; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand-mark { font-size: 30px; }
+  .brand h1 { margin:0; font-size: clamp(19px, 3vw, 27px); }
+  .brand p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+  .hud { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .hud-item {
+    background: rgba(24,33,40,.9); border:1px solid var(--line);
+    border-radius:12px; padding:8px 11px; min-width:82px;
+  }
+  .hud-label { color:var(--muted); font-size:11px; display:block; }
+  .hud-value { font-weight:750; font-size:15px; }
+  .game {
+    position:relative; overflow:hidden; min-height:650px;
+    border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow);
+    background:#d5c7ac;
+  }
+  .scene {
+    position:relative; min-height:650px; overflow:hidden;
+    background:
+      linear-gradient(to bottom, #b9d0d4 0 57%, #c9b28e 57% 100%);
+  }
+  .ceiling { position:absolute; left:0; right:0; top:0; height:28px; background:#e5ddd0; }
+  .floor-line { position:absolute; left:0; right:0; top:57%; height:8px; background:#9c8464; }
+  .rug {
+    position:absolute; width:38%; height:28%; left:31%; bottom:6%;
+    background:#a99573; border:5px solid #887356; border-radius:50%;
+    opacity:.75;
+  }
+  .window {
+    position:absolute; left:7%; top:10%; width:23%; height:30%;
+    background:#87b8c5; border:12px solid #8b735d; border-bottom-width:18px;
+    box-shadow: inset 0 0 0 4px rgba(255,255,255,.2);
+  }
+  .window:before { content:""; position:absolute; left:50%; top:0; bottom:0; width:5px; background:#8b735d; }
+  .window:after { content:""; position:absolute; top:50%; left:0; right:0; height:5px; background:#8b735d; }
+  .sun { position:absolute; width:48px; height:48px; border-radius:50%; background:#e9c76a; right:13%; top:17%; }
+  .object {
+    position:absolute; border:0; background:transparent; cursor:pointer;
+    color:var(--text); transition:transform .18s ease, filter .18s ease;
+    text-align:center; padding:8px; border-radius:16px;
+  }
+  .object:hover, .object:focus-visible { transform:translateY(-5px); filter:brightness(1.12); outline:2px solid var(--accent); outline-offset:3px; }
+  .object .emoji { display:block; font-size:clamp(54px, 8vw, 90px); line-height:1; filter:drop-shadow(0 8px 5px rgba(0,0,0,.22)); }
+  .object .label { display:inline-block; margin-top:7px; padding:5px 9px; border-radius:9px; background:rgba(16,21,26,.78); font-weight:700; font-size:13px; }
+  .fridge { left:37%; top:24%; }
+  .pantry { right:8%; top:25%; }
+  .stove { left:42%; bottom:20%; }
+  .waste { right:12%; bottom:15%; }
+  .door { left:5%; bottom:11%; }
+  .door .emoji { font-size:72px; }
+  .player {
+    position:absolute; left:50%; bottom:11%; transform:translateX(-50%);
+    text-align:center; pointer-events:none;
+  }
+  .player .emoji { font-size:68px; filter:drop-shadow(0 8px 5px rgba(0,0,0,.2)); }
+  .player span { display:block; background:rgba(16,21,26,.72); padding:4px 8px; border-radius:8px; font-size:12px; }
+  .hint {
+    position:absolute; left:50%; top:8%; transform:translateX(-50%);
+    background:rgba(16,21,26,.86); border:1px solid var(--line);
+    padding:10px 15px; border-radius:999px; color:#eaf0ed; font-size:13px;
+    white-space:nowrap; max-width:90%; overflow:hidden; text-overflow:ellipsis;
+  }
+  .bottom {
+    position:absolute; left:18px; right:18px; bottom:18px;
+    display:flex; justify-content:space-between; align-items:flex-end; gap:12px;
+    pointer-events:none;
+  }
+  .inventory-preview {
+    pointer-events:auto; background:rgba(16,21,26,.88); border:1px solid var(--line);
+    border-radius:16px; padding:10px; min-width:250px;
+  }
+  .inventory-head { display:flex; justify-content:space-between; gap:12px; font-size:13px; }
+  .inventory-head span:last-child { color:var(--accent); font-weight:800; }
+  .slots { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .slot { width:34px; height:34px; border-radius:9px; background:#26323a; display:grid; place-items:center; font-size:20px; border:1px solid var(--line); }
+  .slot.empty { opacity:.45; }
+  .message {
+    pointer-events:auto; max-width:430px; background:rgba(16,21,26,.88);
+    border:1px solid var(--line); border-radius:16px; padding:11px 14px; font-size:13px;
+  }
+  .modal-backdrop {
+    position:fixed; inset:0; background:rgba(0,0,0,.54);
+    display:flex; align-items:center; justify-content:center; padding:18px; z-index:20;
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .42s ease, visibility 0s linear .42s;
+  }
+  .modal-backdrop.open { opacity:1; visibility:visible; pointer-events:auto; transition:opacity .42s ease; }
+  .modal {
+    width:min(820px, 100%); max-height:90vh; overflow:auto;
+    background:#172127; border:1px solid var(--line); border-radius:22px;
+    box-shadow:var(--shadow); padding:20px;
+    transform:translateY(10px) scale(.985); opacity:.96;
+    transition:transform .45s cubic-bezier(.22,.61,.36,1), opacity .45s ease;
+  }
+  .modal-backdrop.open .modal { transform:translateY(0) scale(1); opacity:1; }
+  .modal-head { display:flex; justify-content:space-between; align-items:flex-start; gap:15px; }
+  .modal h2 { margin:0; font-size:23px; }
+  .close {
+    border:1px solid var(--line); background:#253139; color:var(--text);
+    width:42px; height:42px; border-radius:12px; cursor:pointer;
+  }
+  .inside {
+    margin-top:16px; min-height:410px; padding:24px; border-radius:18px;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,.22), transparent 9%, transparent 91%, rgba(0,0,0,.08)),
+      linear-gradient(#f3f0e8, #d6d0c2);
+    color:#2b302e; border:7px solid #6f6f6b;
+    box-shadow:inset 0 0 35px rgba(50,55,55,.16), 0 12px 28px rgba(0,0,0,.18);
+    position:relative; overflow:hidden;
+  }
+  .inside:before { content:""; position:absolute; inset:10px 46% 10px 10px; background:rgba(255,255,255,.2); border-radius:12px; pointer-events:none; }
+  .fridge-light { position:absolute; top:16px; right:18px; width:9px; height:9px; border-radius:50%; background:#d8f4ff; box-shadow:0 0 14px rgba(190,235,255,.9); }
+  .storage-title { position:relative; z-index:1; font-weight:800; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#6d716e; }
+  .shelves { display:grid; gap:22px; margin-top:16px; position:relative; z-index:1; }
+  .shelf {
+    min-height:82px; display:flex; align-items:end; gap:16px; padding:0 16px 10px;
+    border-bottom:9px solid #77736b; box-shadow:0 5px 0 rgba(55,55,50,.10);
+  }
+  .food {
+    border:0; background:transparent; cursor:pointer; font-size:42px;
+    padding:6px 7px 4px; border-radius:11px; transition:transform .42s cubic-bezier(.22,.61,.36,1), filter .42s ease, background .42s ease;
+    transform-origin:center bottom;
+  }
+  .food:hover, .food:focus-visible { transform:translateY(-4px) scale(1.055); background:rgba(255,255,255,.22); filter:drop-shadow(0 5px 4px rgba(0,0,0,.12)); outline:none; }
+  .food small { display:block; font-size:10px; color:#343a37; font-weight:700; }
+  .pagination { text-align:center; margin-top:14px; font-size:13px; color:#3d4541; }
+  .card {
+    margin-top:16px; padding:18px; border-radius:16px; background:#202d35; border:1px solid var(--line);
+  }
+  .food-title { display:flex; gap:15px; align-items:center; }
+  .food-big { font-size:58px; }
+  .food-title h3 { margin:0 0 4px; font-size:21px; }
+  .muted { color:var(--muted); }
+  .facts { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin-top:14px; }
+  .fact { background:#182229; border:1px solid var(--line); border-radius:11px; padding:10px; }
+  .fact b { display:block; font-size:11px; color:var(--muted); margin-bottom:3px; }
+  .warning { color:#f0c56b; margin-top:12px; font-weight:700; }
+  .actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:15px; }
+  .btn {
+    border:1px solid var(--line); border-radius:11px; padding:10px 14px; cursor:pointer;
+    background:#293841; color:var(--text); font-weight:750;
+  }
+  .btn.primary { background:var(--accent); color:#142018; border-color:transparent; }
+  .btn:hover { filter:brightness(1.08); }
+  .choice-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px; }
+  .choice {
+    padding:22px 14px; border:1px solid var(--line); background:#202d35; color:var(--text);
+    border-radius:16px; cursor:pointer; font-weight:750;
+  }
+  .choice span { display:block; font-size:42px; margin-bottom:8px; }
+  @media (max-width: 720px) {
+    .game, .scene { min-height:690px; }
+    .window { width:28%; height:22%; }
+    .fridge { left:30%; top:25%; }
+    .pantry { right:3%; top:25%; }
+    .stove { left:36%; bottom:24%; }
+    .bottom { flex-direction:column; align-items:stretch; }
+    .inventory-preview { min-width:0; }
+    .message { max-width:none; }
+    .hint { top:4%; }
+    .facts, .choice-grid { grid-template-columns:1fr; }
+  }
+
+/* Hortifruti — corredor visual */
+#hortScreen{position:absolute;inset:0;display:none;z-index:20;background:#0b1e2c}
+#hortScreen.open{display:block}
+.hort-bg{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat;transition:opacity .18s ease}
+.hort-dim{position:absolute;inset:0;pointer-events:none}
+.hort-topbar{position:absolute;left:0;right:0;top:0;height:92px;background:rgba(7,28,43,.96);display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-sizing:border-box;z-index:3;box-shadow:0 4px 18px rgba(0,0,0,.22)}
+.hort-chips{display:flex;gap:10px;align-items:center}.hort-chip{background:#102f45;border:2px solid #2e78a1;color:#fff;border-radius:14px;padding:10px 15px;font-weight:900;box-shadow:0 5px 12px rgba(0,0,0,.18)}
+.hort-chip.points{border-color:#e3a82f}.hort-chip.bag{border-color:#3d9c75}
+.hort-title{position:absolute;top:103px;left:50%;transform:translateX(-50%);background:rgba(10,30,43,.9);color:#fff;border:2px solid #b77738;border-radius:14px;padding:8px 22px;font-size:22px;font-weight:900;z-index:3;box-shadow:0 5px 14px rgba(0,0,0,.18)}
+.hort-hotspot{position:absolute;z-index:4;border:0;background:transparent;border-radius:18px;cursor:pointer;transition:transform .2s ease,filter .2s ease;outline:none}
+.hort-hotspot:hover{transform:scale(1.045);filter:brightness(1.12) drop-shadow(0 8px 10px rgba(0,0,0,.28))}
+.hort-hotspot:active{transform:scale(.98)}
+.hort-arrow{position:absolute;z-index:5;top:45%;width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.8);background:rgba(8,39,57,.92);color:#fff;font-size:40px;font-weight:900;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.28);transition:transform .2s ease}
+.hort-arrow:hover{transform:scale(1.08)}.hort-prev{left:22px}.hort-next{right:22px}
+.hort-bottom{position:absolute;left:20px;right:20px;bottom:18px;z-index:5;display:flex;justify-content:space-between;align-items:end;gap:14px;pointer-events:none}.hort-bottom>*{pointer-events:auto}
+.hort-btn{border:2px solid #3a84ad;background:rgba(8,32,47,.96);color:#fff;border-radius:15px;padding:13px 18px;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 6px 15px rgba(0,0,0,.2);transition:transform .2s ease,filter .2s ease}.hort-btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.hort-help{background:rgba(8,32,47,.94);color:#fff;border-radius:14px;padding:12px 18px;font-weight:800;text-align:center;max-width:380px}
+.hort-buy-pop{position:absolute;z-index:10;left:50%;top:52%;transform:translate(-50%,-50%) scale(.95);opacity:0;pointer-events:none;background:rgba(8,31,45,.98);color:#fff;border:2px solid #39a879;border-radius:18px;padding:18px 24px;min-width:250px;text-align:center;box-shadow:0 14px 30px rgba(0,0,0,.35);transition:.2s ease}.hort-buy-pop.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.hort-counter{position:absolute;top:96px;right:22px;z-index:4;background:rgba(8,32,47,.9);color:#fff;border:2px solid #3a84ad;border-radius:12px;padding:8px 13px;font-weight:900}
+@media(max-width:800px){.hort-topbar{height:72px;padding:0 8px}.hort-chip{font-size:12px;padding:7px 9px}.hort-title{top:82px;font-size:16px}.hort-arrow{width:54px;height:54px;font-size:29px}.hort-prev{left:8px}.hort-next{right:8px}.hort-bottom{left:8px;right:8px;bottom:8px}.hort-help{font-size:12px;padding:9px}.hort-btn{font-size:12px;padding:9px 11px}}
+
+</style>
+
+<style id="next-day-style">
+  .day-button {
+    display:flex; align-items:center; gap:8px; border:1px solid rgba(255,255,255,.16);
+    background:rgba(24,33,40,.92); color:#f3f6f4; border-radius:12px;
+    padding:9px 12px; cursor:pointer; transition:transform .2s ease, background .2s ease;
+  }
+  .day-button:hover { transform:translateY(-2px); background:rgba(35,48,57,.96); }
+  .day-button span { font-size:18px; }
+  .day-button b { font-size:12px; }
+</style>
+
+<style id="approved-scene-style">
+  .topbar { display:none !important; }
+  .game { min-height:0 !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; background:transparent !important; }
+  .scene {
+    min-height:0 !important;
+    aspect-ratio: 1536 / 1024;
+    background-image: url("casa_fase1.png") !important;
+    background-size: cover !important;
+    background-position:center !important;
+    background-repeat:no-repeat !important;
+    border-radius:22px;
+  }
+  .scene > .ceiling,
+  .scene > .window,
+  .scene > .sun,
+  .scene > .floor-line,
+  .scene > .rug,
+  .scene > .player,
+  .scene > .hint,
+  .scene > .bottom { display:none !important; }
+
+  .object {
+    z-index:5;
+    padding:0 !important;
+    border:0 !important;
+    border-radius:18px !important;
+    background:transparent !important;
+    color:transparent !important;
+    transition: transform .22s cubic-bezier(.2,.75,.25,1), filter .22s ease, opacity .22s ease;
+    opacity:.01;
+  }
+  .object .emoji, .object .label { display:none !important; }
+
+  /* Professional hover: no colored rectangle. The hotspot gently enlarges,
+     lifts and gains a subtle shadow/glow. */
+  .object:hover,
+  .object:focus-visible {
+    transform: scale(1.045) translateY(-2px) !important;
+    filter: drop-shadow(0 7px 10px rgba(255,255,255,.22)) brightness(1.035) !important;
+    outline:none !important;
+    background:transparent !important;
+  }
+  .object:focus-visible::after {
+    content:"";
+    position:absolute;
+    inset:-5px;
+    border:1px solid rgba(255,255,255,.62);
+    border-radius:20px;
+    box-shadow:0 0 14px rgba(255,255,255,.18);
+    pointer-events:none;
+  }
+
+  .door { left:4.5% !important; top:18% !important; width:14% !important; height:48% !important; bottom:auto !important; }
+  .pantry { left:19% !important; top:19% !important; width:17% !important; height:43% !important; right:auto !important; }
+  .fridge { left:56% !important; top:21% !important; width:18% !important; height:45% !important; }
+  .stove { left:73% !important; top:35% !important; width:20% !important; height:39% !important; bottom:auto !important; }
+  .waste { right:1.5% !important; top:61% !important; width:11% !important; height:25% !important; bottom:auto !important; }
+
+  @media (max-width:720px) {
+    .scene { border-radius:14px; }
+  }
+</style>
+
+
+<style>
+  #message {
+    position: absolute;
+    width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%);
+    white-space: nowrap;
+  }
+</style>
+
+
+<style id="dynamic-game-ui">
+  .game-hud {
+    position:absolute; z-index:10; top:18px; left:18px; right:18px;
+    display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+    pointer-events:none;
+  }
+  .hud-left, .hud-right { display:flex; gap:9px; align-items:flex-start; }
+  .hud-chip, .inventory-button, .metrics {
+    background:rgba(10,28,42,.93); color:#f4f8f7; border:2px solid #238bc0;
+    box-shadow:0 6px 16px rgba(0,0,0,.18);
+  }
+  .hud-chip {
+    min-width:92px; height:52px; border-radius:15px; display:flex; align-items:center;
+    justify-content:center; gap:7px; padding:0 12px; font-size:17px;
+  }
+  .hud-chip span { font-size:22px; }
+  .inventory-button {
+    border-radius:15px; min-width:142px; height:62px; padding:7px 12px;
+    display:flex; align-items:center; gap:9px; color:#fff; cursor:pointer;
+    text-align:left;
+  }
+  .inventory-button:hover, .inventory-strip:hover { filter:brightness(1.12); }
+  .inventory-button .bag { font-size:28px; }
+  .inventory-button b { display:block; font-size:14px; }
+  .inventory-button small { display:block; color:#bde4f6; margin-top:2px; font-size:13px; }
+  .metrics {
+    width:205px; border-radius:15px; padding:9px 12px;
+  }
+  .metrics > div { display:grid; grid-template-columns:22px 1fr; gap:2px 6px; margin:2px 0 7px; }
+  .metrics > div:last-child { margin-bottom:1px; }
+  .metrics span { grid-row:span 2; font-size:20px; }
+  .metrics b { font-size:12px; }
+  .metrics i { display:block; height:7px; border-radius:8px; background:#17354a; overflow:hidden; }
+  .metrics em { display:block; width:0%; height:100%; border-radius:8px; background:#63c979; transition:width .25s; }
+  .inventory-strip {
+    position:absolute; z-index:9; left:20px; bottom:18px; width:min(650px, calc(100% - 40px));
+    min-height:84px; border:2px solid #238bc0; border-radius:17px;
+    background:rgba(10,28,42,.95); color:#fff; display:flex; align-items:center;
+    gap:10px; padding:10px 13px; cursor:pointer; box-shadow:0 7px 18px rgba(0,0,0,.2);
+    text-align:left;
+  }
+  .inventory-title { font-weight:800; min-width:88px; }
+  .inventory-items { display:flex; gap:7px; flex:1; min-width:0; overflow:hidden; }
+  .inv-slot {
+    flex:0 0 56px; height:56px; border-radius:11px; background:#163b54;
+    border:1px solid #397694; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; position:relative;
+  }
+  .inv-slot .inv-emoji { font-size:27px; line-height:1; }
+  .inv-slot .inv-count { position:absolute; right:4px; bottom:3px; font-size:11px; font-weight:800; }
+  .inventory-capacity { color:#bde4f6; font-weight:800; white-space:nowrap; }
+  @media (max-width: 850px) {
+    .game-hud { top:10px; left:10px; right:10px; }
+    .metrics { display:none; }
+    .hud-chip { min-width:60px; height:44px; padding:0 8px; font-size:14px; }
+    .inventory-button { height:52px; min-width:116px; }
+    .inventory-button .bag { font-size:22px; }
+    .inventory-strip { left:10px; bottom:10px; width:calc(100% - 20px); min-height:70px; }
+    .inventory-title { display:none; }
+  }
+</style>
+
+
+<style>
+  .inventory-list { display:grid; gap:9px; margin-top:14px; }
+  .inventory-row {
+    display:flex; align-items:center; gap:12px; padding:10px; border-radius:12px;
+    background:#182229; border:1px solid rgba(255,255,255,.09);
+  }
+  .inventory-row .inv-big { font-size:37px; }
+  .inventory-row .inv-info { flex:1; }
+  .inventory-row .inv-info b { display:block; }
+  .inventory-row .inv-info small { color:#aab7b2; }
+  .inventory-row button { border:1px solid rgba(255,255,255,.12); background:#293841; color:#fff; border-radius:9px; padding:8px 10px; cursor:pointer; }
+</style>
+
+
+<style id="professional-hover">
+  /* Interactive objects are invisible hit areas; no green boxes. */
+  .scene .object {
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    transition: none !important;
+  }
+  .scene .object:hover,
+  .scene .object:focus-visible {
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  /* A subtle zoomed copy of the scene appears only around the hovered object. */
+  .scene::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    background-image: url("casa_fase1.png");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transform: scale(1.025);
+    transform-origin: center center;
+    transition: opacity .16s ease, transform .18s ease;
+    clip-path: inset(0 0 0 0 round 0);
+  }
+
+  .scene:has(.fridge:hover)::after {
+    opacity: 1;
+    transform: scale(1.045);
+    transform-origin: 64% 42%;
+    clip-path: inset(17% 24% 29% 52% round 18px);
+    filter: drop-shadow(0 0 7px rgba(120, 190, 255, .34));
+  }
+  .scene:has(.pantry:hover)::after {
+    opacity: 1;
+    transform: scale(1.045);
+    transform-origin: 27% 40%;
+    clip-path: inset(15% 62% 29% 16% round 18px);
+    filter: drop-shadow(0 0 7px rgba(220, 170, 95, .30));
+  }
+  .scene:has(.stove:hover)::after {
+    opacity: 1;
+    transform: scale(1.04);
+    transform-origin: 82% 52%;
+    clip-path: inset(30% 4% 21% 68% round 18px);
+    filter: drop-shadow(0 0 7px rgba(100, 190, 210, .28));
+  }
+  .scene:has(.waste:hover)::after {
+    opacity: 1;
+    transform: scale(1.04);
+    transform-origin: 94% 74%;
+    clip-path: inset(55% 0 8% 86% round 18px);
+    filter: drop-shadow(0 0 7px rgba(110, 200, 150, .28));
+  }
+  .scene:has(.door:hover)::after {
+    opacity: 1;
+    transform: scale(1.035);
+    transform-origin: 11% 43%;
+    clip-path: inset(12% 80% 31% 3% round 18px);
+    filter: drop-shadow(0 0 7px rgba(220, 160, 90, .25));
+  }
+
+  /* Keep hit zones above the zoom layer. */
+  .scene .object { z-index: 6; }
+
+  @media (max-width: 720px) {
+    .scene:has(.fridge:hover)::after,
+    .scene:has(.pantry:hover)::after,
+    .scene:has(.stove:hover)::after,
+    .scene:has(.waste:hover)::after,
+    .scene:has(.door:hover)::after {
+      display:none;
+    }
+  }
+</style>
+
+
+<style id="soft-hover-and-tight-hitboxes">
+  /* Softer, slower interaction: the scene gently breathes instead of snapping. */
+  .scene::after {
+    transition: opacity .42s ease, transform .48s cubic-bezier(.22,.70,.28,1);
+    transform: scale(1.008);
+  }
+  .scene:has(.fridge:hover)::after {
+    transform: scale(1.022);
+    transition-duration: .48s;
+  }
+  .scene:has(.pantry:hover)::after {
+    transform: scale(1.022);
+    transition-duration: .48s;
+  }
+  .scene:has(.stove:hover)::after {
+    transform: scale(1.018);
+    transition-duration: .48s;
+  }
+  .scene:has(.waste:hover)::after {
+    transform: scale(1.018);
+    transition-duration: .48s;
+  }
+  .scene:has(.door:hover)::after {
+    transform: scale(1.016);
+    transition-duration: .48s;
+  }
+
+  /* Tight hitboxes: only the actual object area responds to the pointer. */
+  .scene .door {
+    left: 6% !important; top: 18% !important;
+    width: 11% !important; height: 48% !important;
+  }
+  .scene .pantry {
+    left: 20% !important; top: 20% !important;
+    width: 14% !important; height: 42% !important;
+  }
+  .scene .fridge {
+    left: 57% !important; top: 22% !important;
+    width: 15% !important; height: 40% !important;
+  }
+  .scene .stove {
+    left: 76% !important; top: 38% !important;
+    width: 19% !important; height: 35% !important;
+  }
+  .scene .waste {
+    right: 1% !important; top: 64% !important;
+    width: 8% !important; height: 24% !important;
+  }
+</style>
+
+
+<style id="market-scene-style">
+#marketScene{position:fixed;inset:0;z-index:50;display:none;background:#111}
+#marketScene.active{display:block}
+#marketScene .market-bg{position:absolute;inset:0;background:url("mercado_fase2_cenario.png") center/cover no-repeat}
+#marketScene .market-hud{position:absolute;top:18px;left:18px;right:18px;display:flex;justify-content:space-between;gap:10px;pointer-events:none}
+#marketScene .market-left,#marketScene .market-right{display:flex;gap:9px}
+#marketScene .market-chip{background:rgba(10,28,42,.94);color:#fff;border:2px solid #238bc0;border-radius:15px;padding:12px 16px;font-weight:800;box-shadow:0 6px 16px rgba(0,0,0,.2)}
+#marketScene .market-button{position:absolute;border:0;background:transparent;cursor:pointer;border-radius:22px;transition:transform .22s ease,filter .22s ease}
+#marketScene .market-button:hover{transform:scale(1.035) translateY(-2px);filter:brightness(1.08) drop-shadow(0 7px 10px rgba(0,0,0,.25))}
+#marketScene .mh-hort{left:2%;top:27%;width:19%;height:31%}.mh-latic{left:22%;top:27%;width:19%;height:30%}.mh-carnes{left:42%;top:27%;width:18%;height:30%}.mh-padaria{left:61%;top:27%;width:18%;height:30%}.mh-cart{right:1%;top:24%;width:19%;height:31%}.mh-caixa{right:2%;bottom:12%;width:20%;height:29%}.mh-saida{left:1%;bottom:5%;width:20%;height:37%}
+#marketScene .market-back{left:18px;bottom:18px;padding:12px 18px;background:rgba(10,28,42,.95);color:#fff;border:2px solid #238bc0;border-radius:15px;font-weight:800;cursor:pointer;z-index:2}
+#marketModal{position:absolute;inset:0;background:rgba(8,18,28,.62);display:none;align-items:center;justify-content:center;z-index:5}
+#marketModal.open{display:flex}
+#marketCard{width:min(900px,92vw);max-height:90vh;overflow:auto;background:#f7f4ea;color:#243447;border-radius:28px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#marketCard .m-close{float:right;border:0;background:#263b50;color:#fff;border-radius:14px;padding:10px 15px;font-weight:800;cursor:pointer}
+#marketCard h2{margin:0 0 6px;font-size:32px}#marketCard .m-sub{margin:0 0 18px;color:#607080}
+.m-menu{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.m-menu button{border:0;border-radius:18px;padding:20px;background:#e8f1f8;font-size:18px;font-weight:900;color:#294158;cursor:pointer}
+.m-sector-nav{display:flex;align-items:center;gap:14px}.m-arrow{width:58px;height:58px;border:0;border-radius:50%;background:#1769aa;color:#fff;font-size:28px;font-weight:900;cursor:pointer}
+.m-shelf{flex:1;min-height:360px;border-radius:22px;padding:22px;background:linear-gradient(#e8d6bc,#c18a55)}
+.m-products{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:end;height:100%}.m-product{background:#fffdf6;border-radius:18px;padding:14px;text-align:center;box-shadow:0 5px 12px #0003;color:#263b50}
+.m-sign{display:inline-block;background:#fff2b3;border:3px solid #6c5528;border-radius:8px;padding:7px 10px;font-weight:900;margin-bottom:10px}.m-food{font-size:70px;height:100px;display:flex;align-items:center;justify-content:center}
+.m-buy{margin-top:8px;background:#1d7a4b;color:#fff;border:0;border-radius:12px;padding:10px;width:100%;font-weight:900;cursor:pointer}
+@media(max-width:720px){#marketScene .market-chip{font-size:13px;padding:9px 11px}.m-menu{grid-template-columns:1fr}.m-products{grid-template-columns:1fr}.m-shelf{overflow:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar" style="display:none;">
+    <div class="brand">
+      <div class="brand-mark">♻️</div>
+      <div>
+        <h1>Missão: Zero Desperdício</h1>
+        <p>Fase 1 — Casa · Explore e organize seus alimentos</p>
+      </div>
+    </div>
+    <div class="hud" aria-label="Indicadores do jogo">
+      <div class="hud-item"><span class="hud-label">📅 Dia</span><span class="hud-value" id="day">1</span></div>
+      <div class="hud-item"><span class="hud-label">⭐ Pontos</span><span class="hud-value" id="score">120</span></div>
+      <div class="hud-item"><span class="hud-label">🔥 Combo</span><span class="hud-value" id="combo">x2</span></div>
+    </div>
+  </header>
+
+  <main class="game">
+    <section class="scene" id="scene" aria-label="Casa ilustrada — clique nos objetos do cenário para interagir.">
+      <div class="ceiling"></div>
+      <div class="window" aria-hidden="true"></div>
+      <div class="sun" aria-hidden="true"></div>
+      <div class="floor-line"></div>
+      <div class="rug" aria-hidden="true"></div>
+      <div class="hint" id="hint">Clique em um objeto para explorar a casa.</div>
+      <div class="game-hud">
+        <div class="hud-left">
+          <div class="hud-chip"><span>📅</span><b>Dia <span id="gameDay">1</span></b></div>
+          <div class="hud-chip"><span>⭐</span><b id="gameScore">120</b></div>
+          <div class="hud-chip"><span>🔥</span><b id="gameCombo">x2</b></div>
+        </div>
+        <div class="hud-right">
+          <button class="day-button" id="nextDay" aria-label="Avançar para o próximo dia">
+            <span>🌅</span><b>Próximo dia</b>
+          </button>
+          <button class="inventory-button" id="openInventory" aria-label="Abrir inventário">
+            <span class="bag">🎒</span>
+            <span><b>Inventário</b><small id="hudInventoryCount">8 / 30</small></span>
+          </button>
+          <div class="metrics">
+            <div><span>🍎</span><b>Desperdício</b><i><em id="wasteBar"></em></i></div>
+            <div><span>💰</span><b>Economia</b><i><em id="economyBar"></em></i></div>
+            <div><span>🌱</span><b>Sustentabilidade</b><i><em id="sustainabilityBar"></em></i></div>
+          </div>
+        </div>
+      </div>
+
+
+      <button class="object fridge" data-object="fridge" aria-label="Abrir geladeira">
+        <span class="emoji">🧊</span><span class="label">Geladeira</span>
+      </button>
+      <button class="object pantry" data-object="pantry" aria-label="Abrir despensa">
+        <span class="emoji">🗄️</span><span class="label">Despensa</span>
+      </button>
+      <button class="object stove" data-object="kitchen" aria-label="Ir para cozinha">
+        <span class="emoji">🍳</span><span class="label">Cozinha</span>
+      </button>
+      <button class="object waste" data-object="waste" aria-label="Ver resíduos">
+        <span class="emoji">🗑️</span><span class="label">Resíduos</span>
+      </button>
+      <button class="object door" data-object="door" aria-label="Ver porta">
+        <span class="emoji">🚪</span><span class="label">Saída</span>
+      </button>
+
+      <div class="player" aria-hidden="true">
+        <div class="emoji">🧑</div>
+        <span>Jogador</span>
+      </div>
+
+      
+      <button class="inventory-strip" id="inventoryStrip" aria-label="Abrir inventário">
+        <span class="inventory-title">🎒 Inventário</span>
+        <span class="inventory-items" id="inventoryItems"></span>
+        <span class="inventory-capacity" id="stripInventoryCount">8 / 30</span>
+      </button>
+
+      <div class="bottom">
+        <div class="inventory-preview">
+          <div class="inventory-head"><strong>🎒 Inventário</strong><span id="inventoryCount">0 / 30</span></div>
+          <div class="slots" id="slots"></div>
+        </div>
+        <div class="message" id="message" aria-live="polite">Explore a casa para descobrir os alimentos disponíveis.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <div><h2 id="modalTitle">Geladeira</h2></div>
+      <button class="close" id="closeModal" aria-label="Fechar">✕</button>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const state = {
+    score: 120,
+    combo: 2,
+    day: 1,
+    waste: 0,
+    economy: 18,
+    sustainability: 24,
+    inventory: ["cenoura","cenoura","cenoura","leite","leite","tomate","brocolis","brocolis"],
+    selectedFood: null,
+    foods: {
+      cenoura: {
+        id: "cenoura", nome: "Cenoura", emoji: "🥕",
+        descricao: "Vegetal versátil que pode ser usado em várias preparações.",
+        quantidade: 3, validade: 1, local: "Geladeira", armazenamentoIdeal: "Geladeira", validadeRestante: 1, armazenamentoInadequado: false
+      },
+      leite: {
+        id: "leite", nome: "Leite", emoji: "🥛",
+        descricao: "Alimento refrigerado que pode ser usado em várias receitas.",
+        quantidade: 2, validade: 4, local: "Geladeira", armazenamentoIdeal: "Geladeira", validadeRestante: 4, armazenamentoInadequado: false
+      },
+      tomate: {
+        id: "tomate", nome: "Tomate", emoji: "🍅",
+        descricao: "Ingrediente versátil para saladas, molhos e preparações.",
+        quantidade: 2, validade: 2, local: "Geladeira", armazenamentoIdeal: "Geladeira", validadeRestante: 2, armazenamentoInadequado: false
+      },
+      brocolis: {
+        id: "brocolis", nome: "Brócolis", emoji: "🥦",
+        descricao: "Vegetal que pode ser aproveitado em diversas refeições.",
+        quantidade: 2, validade: 1, local: "Geladeira", armazenamentoIdeal: "Geladeira", validadeRestante: 1, armazenamentoInadequado: false
+      },
+      arroz: {
+        id: "arroz", nome: "Arroz", emoji: "🍚",
+        descricao: "Alimento básico que pode ser combinado com diversos ingredientes.",
+        quantidade: 4, validade: 20, local: "Despensa", armazenamentoIdeal: "Despensa", validadeRestante: 20, armazenamentoInadequado: false
+      },
+      feijao: {
+        id: "feijao", nome: "Feijão", emoji: "🫘",
+        descricao: "Alimento armazenado em local seco e adequado.",
+        quantidade: 3, validade: 25, local: "Despensa", armazenamentoIdeal: "Despensa", validadeRestante: 25, armazenamentoInadequado: false
+      },
+      pao: {
+        id: "pao", nome: "Pão", emoji: "🍞",
+        descricao: "Produto que deve ser bem planejado para evitar sobras.",
+        quantidade: 3, validade: 2, local: "Despensa", armazenamentoIdeal: "Despensa", validadeRestante: 2, armazenamentoInadequado: false
+      }
+    }
+  };
+
+  window.__gameState = state;
+  const $ = id => document.getElementById(id);
+  const modal = $("modalBackdrop");
+  const content = $("modalContent");
+
+  function setMessage(text) { $("message").textContent = text; }
+  function addScore(points) {
+    state.score += points;
+    $("score").textContent = state.score;
+  }
+
+  function updateInventory() {
+    const count = state.inventory.length;
+    $("inventoryCount").textContent = `${count} / 30`;
+    $("hudInventoryCount").textContent = `${count} / 30`;
+    $("stripInventoryCount").textContent = `${count} / 30`;
+
+    const grouped = {};
+    state.inventory.forEach(id => grouped[id] = (grouped[id] || 0) + 1);
+
+    const strip = $("inventoryItems");
+    strip.innerHTML = "";
+    Object.entries(grouped).slice(0, 8).forEach(([id, qty]) => {
+      const item = state.foods[id];
+      const slot = document.createElement("span");
+      slot.className = "inv-slot";
+      slot.innerHTML = `<span class="inv-emoji">${item.emoji}</span><span class="inv-count">×${qty}</span>`;
+      strip.appendChild(slot);
+    });
+
+    while (strip.children.length < 7) {
+      const slot = document.createElement("span");
+      slot.className = "inv-slot";
+      slot.style.opacity = ".35";
+      slot.textContent = "·";
+      strip.appendChild(slot);
+    }
+
+    $("gameScore").textContent = state.score;
+    $("gameCombo").textContent = `x${state.combo}`;
+    $("gameDay").textContent = state.day;
+    $("wasteBar").style.width = `${Math.min(100, state.waste)}%`;
+    $("economyBar").style.width = `${Math.min(100, state.economy)}%`;
+    $("sustainabilityBar").style.width = `${Math.min(100, state.sustainability)}%`;
+  }
+
+  function addCombo() {
+    state.combo = Math.min(9, state.combo + 1);
+  }
+
+  function openInventory() {
+    const grouped = {};
+    state.inventory.forEach(id => grouped[id] = (grouped[id] || 0) + 1);
+    const entries = Object.entries(grouped);
+
+    const rows = entries.length ? entries.map(([id, qty]) => {
+      const item = state.foods[id];
+      return `
+        <div class="inventory-row">
+          <div class="inv-big">${item.emoji}</div>
+          <div class="inv-info">
+            <b>${item.nome}</b>
+            <small>${qty} unidade(s) no inventário</small>
+          </div>
+          <button data-inventory-food="${id}">Ver detalhes</button>
+        </div>`;
+    }).join("") : `<div class="card"><b>Inventário vazio.</b><p class="muted">Pegue alimentos na geladeira ou na despensa.</p></div>`;
+
+    openModal("🎒 Inventário", `
+      <div class="card">
+        <div class="food-title">
+          <div class="food-big">🎒</div>
+          <div>
+            <h3>${state.inventory.length} / 30 unidades</h3>
+            <div class="muted">Clique em um alimento para consultar suas informações.</div>
+          </div>
+        </div>
+        <div class="inventory-list">${rows}</div>
+      </div>
+    `);
+
+    content.querySelectorAll("[data-inventory-food]").forEach(btn => {
+      btn.addEventListener("click", () => openFood(btn.dataset.inventoryFood, true));
+    });
+  }
+
+  function openModal(title, html) {
+    $("modalTitle").textContent = title;
+    content.innerHTML = html;
+    modal.classList.add("open");
+    $("closeModal").focus();
+  }
+
+  function closeModal() {
+    modal.classList.remove("open");
+    state.selectedFood = null;
+  }
+
+  function foodStatus(days) {
+    if (days < 0) return { text: "Fora do prazo", cls: "danger" };
+    if (days === 0) return { text: "Último dia", cls: "warning" };
+    if (days <= 1) return { text: "Próximo do prazo", cls: "warning" };
+    return { text: "Dentro do prazo", cls: "ok" };
+  }
+
+  function openStorage(type) {
+    const foods = Object.values(state.foods).filter(f => f.local === type && f.quantidade > 0);
+    const isFridge = type === "Geladeira";
+    const icon = isFridge ? "🧊" : "🗄️";
+    const rows = foods.map(food => `
+      <button class="food" data-food="${food.id}" title="Ver ${food.nome}" aria-label="Ver ${food.nome}">
+        ${food.emoji}<small>${food.nome} ×${food.quantidade}</small>
+      </button>
+    `).join("");
+
+    openModal(`${icon} ${type}`, `
+      <div class="inside">
+        <div class="fridge-light"></div>
+        <div class="storage-title">${isFridge ? "Interior da geladeira" : "Interior da despensa"}</div>
+        <div class="shelves">
+          <div class="shelf">${rows || "<span>Nenhum alimento disponível neste local.</span>"}</div>
+          <div class="shelf"></div>
+          <div class="shelf"></div>
+        </div>
+        <div class="pagination">Página 1 de 1</div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="backToHouse">← Voltar para a casa</button>
+        <span class="muted" style="align-self:center">Clique em um alimento para consultar seus detalhes.</span>
+      </div>
+    `);
+
+    $("backToHouse").addEventListener("click", closeModal);
+    content.querySelectorAll("[data-food]").forEach(btn => {
+      btn.addEventListener("click", () => openFood(btn.dataset.food));
+    });
+  }
+
+  function openFood(id, fromInventory = false) {
+    const food = state.foods[id];
+    state.selectedFood = id;
+    const status = foodStatus(food.validade);
+    openModal(`${food.emoji} ${food.nome}`, `
+      <div class="card">
+        <div class="food-title">
+          <div class="food-big">${food.emoji}</div>
+          <div>
+            <h3>${food.nome}</h3>
+            <div class="muted">${food.descricao}</div>
+          </div>
+        </div>
+        <div class="facts">
+          <div class="fact"><b>Quantidade no local</b>${food.quantidade} unidade(s)</div>
+          <div class="fact"><b>No inventário</b>${state.inventory.filter(x => x === id).length} unidade(s)</div>
+          <div class="fact"><b>Validade restante</b>${Math.max(0, food.validadeRestante ?? food.validade)} dia(s)</div>
+          <div class="fact"><b>Local atual</b>${food.local}</div>
+          <div class="fact"><b>Status</b>${status.text}</div>${food.armazenamentoInadequado ? `<div class="warning">⚠️ Armazenamento inadequado: este alimento está estragando mais rápido.</div>` : ""}
+        </div>
+        ${food.validade <= 1 ? `<div class="warning">⚠️ Este alimento merece atenção para evitar desperdício.</div>` : ""}
+        <div class="actions">
+          ${fromInventory
+            ? `<button class="btn primary" id="consumeFood">🍽️ Usar 1 unidade</button>
+               <button class="btn" id="storeFromInventory">📦 Guardar 1 unidade</button>`
+            : `<button class="btn primary" id="takeFood">✋ Pegar</button>
+               <button class="btn" id="storeFood">📦 Guardar</button>`}
+        </div>
+      </div>
+    `);
+
+    if (fromInventory) {
+      $("consumeFood").addEventListener("click", () => consumeFood(id));
+      $("storeFromInventory").addEventListener("click", () => chooseStorage(id));
+    } else {
+      $("takeFood").addEventListener("click", () => takeFood(id));
+      $("storeFood").addEventListener("click", () => chooseStorage(id));
+    }
+  }
+
+  function takeFood(id) {
+    const food = state.foods[id];
+    if (state.inventory.length >= 30) {
+      setMessage("🎒 Inventário cheio. Guarde ou use algum alimento para liberar espaço.");
+      return;
+    }
+    if (food.quantidade <= 0) {
+      setMessage(`${food.nome} não possui mais unidades disponíveis nesse local.`);
+      closeModal();
+      return;
+    }
+    food.quantidade--;
+    state.inventory.push(id);
+    addScore(5);
+    addCombo();
+    state.economy = Math.min(100, state.economy + 2);
+    updateInventory();
+    setMessage(`Você pegou 1 ${food.nome}. O inventário agora está em ${state.inventory.length}/30.`);
+    openFood(id);
+  }
+
+
+  function consumeFood(id) {
+    const index = state.inventory.indexOf(id);
+    if (index === -1) return;
+    state.inventory.splice(index, 1);
+    addScore(15);
+    addCombo();
+    state.waste = Math.max(0, state.waste - 2);
+    state.sustainability = Math.min(100, state.sustainability + 3);
+    updateInventory();
+    closeModal();
+    setMessage(`${state.foods[id].emoji} ${state.foods[id].nome} utilizado. +15 pontos e +3 sustentabilidade.`);
+  }
+
+  function returnToStorage(id) {
+    const index = state.inventory.indexOf(id);
+    if (index === -1) return;
+    state.inventory.splice(index, 1);
+    state.foods[id].quantidade++;
+    addScore(5);
+    addCombo();
+    state.sustainability = Math.min(100, state.sustainability + 2);
+    updateInventory();
+    closeModal();
+    setMessage(`${state.foods[id].emoji} ${state.foods[id].nome} voltou para o armazenamento. +5 pontos.`);
+  }
+
+  function chooseStorage(id) {
+    const food = state.foods[id];
+    openModal(`📦 Guardar ${food.nome}`, `
+      <div class="card">
+        <div class="food-title"><div class="food-big">${food.emoji}</div><div>
+          <h3>Onde deseja guardar?</h3>
+          <div class="muted">A escolha é sua. O local escolhido influencia sua pontuação.</div>
+        </div></div>
+
+        <div class="choice-grid">
+          <button class="choice" id="toFridge">
+            <span>🧊</span>Geladeira
+          </button>
+          <button class="choice" id="toPantry">
+            <span>🗄️</span>Armazém / Despensa
+          </button>
+        </div>
+      </div>
+    `);
+
+    $("toFridge").addEventListener("click", () => storeFood(id, "Geladeira"));
+    $("toPantry").addEventListener("click", () => storeFood(id, "Despensa"));
+  }
+
+  function storeFood(id, destination) {
+    const index = state.inventory.indexOf(id);
+    if (index === -1) {
+      setMessage("Esse alimento não está no inventário.");
+      closeModal();
+      return;
+    }
+
+    const food = state.foods[id];
+    const correct = food.armazenamentoIdeal === destination;
+
+    state.inventory.splice(index, 1);
+    food.quantidade++;
+    food.local = destination;
+    food.armazenamentoInadequado = !correct;
+
+    // Cada vez que uma unidade é guardada, o estado do alimento representa
+    // a condição atual daquele lote no armazenamento.
+    if (typeof food.validadeRestante !== "number") {
+      food.validadeRestante = food.validade;
+    }
+
+    if (correct) {
+      addScore(10);
+      addCombo();
+      state.sustainability = Math.min(100, state.sustainability + 4);
+      setMessage(`${food.emoji} ${food.nome} guardado corretamente em ${destination}. +10 pontos.`);
+    } else {
+      state.score = Math.max(0, state.score - 10);
+      state.combo = 1;
+      state.waste = Math.min(100, state.waste + 5);
+      state.sustainability = Math.max(0, state.sustainability - 4);
+      $("score").textContent = state.score;
+      $("combo").textContent = "x1";
+      setMessage(`⚠️ ${food.nome} foi guardado em ${destination}. Além de -10 pontos, ele ficará mais vulnerável ao desperdício.`);
+    }
+
+    updateInventory();
+    closeModal();
+  }
+
+  function advanceDay() {
+    if (state.inventory.length > 0) {
+      setMessage("⚠️ Antes de avançar, você ainda tem alimentos no inventário. Eles não contam como armazenados.");
+    }
+
+    state.day++;
+
+    const spoiled = [];
+    Object.values(state.foods).forEach(food => {
+      if (food.quantidade <= 0) return;
+
+      const reduction = food.armazenamentoInadequado ? 2 : 1;
+      food.validadeRestante = Math.max(0, (food.validadeRestante ?? food.validade) - reduction);
+
+      if (food.validadeRestante <= 0) {
+        const lost = food.quantidade;
+        food.quantidade = 0;
+        state.waste = Math.min(100, state.waste + lost * 5);
+        state.score = Math.max(0, state.score - lost * 5);
+        state.sustainability = Math.max(0, state.sustainability - lost * 2);
+        spoiled.push(`${food.emoji} ${food.nome} (${lost})`);
+      }
+    });
+
+    $("score").textContent = state.score;
+
+    if (spoiled.length) {
+      setMessage(`📅 Dia ${state.day}: alguns alimentos estragaram — ${spoiled.join(", ")}. O armazenamento incorreto acelera a perda.`);
+    } else {
+      setMessage(`📅 Dia ${state.day}: nenhum alimento estragou. Continue cuidando do armazenamento.`);
+    }
+
+    updateInventory();
+  }
+
+  function handleObject(type) {
+    if (type === "fridge") {
+      setMessage("Você abriu a geladeira. Observe os alimentos e fique atento aos prazos.");
+      openStorage("Geladeira");
+    } else if (type === "pantry") {
+      setMessage("Você abriu a despensa. Planejamento e armazenamento correto ajudam a reduzir desperdícios.");
+      openStorage("Despensa");
+    } else if (type === "kitchen") {
+      openModal("🍳 Cozinha", `
+        <div class="card">
+          <div class="food-title">
+            <div class="food-big">🍳</div>
+            <div>
+              <h3>Área de preparo</h3>
+              <div class="muted">A cozinha será usada para preparar receitas. Nesta primeira versão, ela é apenas uma prévia da próxima mecânica.</div>
+            </div>
+          </div>
+          <div class="actions"><button class="btn primary" id="okKitchen">Entendi</button></div>
+        </div>
+      `);
+      $("okKitchen").addEventListener("click", closeModal);
+    } else if (type === "waste") {
+      openModal("🗑️ Resíduos", `
+        <div class="card">
+          <div class="food-title">
+            <div class="food-big">♻️</div>
+            <div>
+              <h3>Área de resíduos</h3>
+              <div class="muted">Aqui futuramente registraremos alimentos desperdiçados e seus impactos nos indicadores.</div>
+            </div>
+          </div>
+          <div class="actions"><button class="btn primary" id="okWaste">Voltar</button></div>
+        </div>
+      `);
+      $("okWaste").addEventListener("click", closeModal);
+    } else if (type === "door") {
+      setMessage("🚪 Você saiu de casa e foi ao mercado.");
+      if (typeof window.__openMarket === "function") window.__openMarket();
+    }
+  }
+
+  document.querySelectorAll("[data-object]").forEach(button => {
+    button.addEventListener("click", () => handleObject(button.dataset.object));
+  });
+
+
+  $("nextDay").addEventListener("click", advanceDay);
+
+  $("openInventory").addEventListener("click", openInventory);
+  $("inventoryStrip").addEventListener("click", openInventory);
+
+  $("closeModal").addEventListener("click", closeModal);
+  modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+  Object.values(state.foods).forEach(food => {
+    if (typeof food.validadeRestante !== "number") food.validadeRestante = food.validade;
+    if (typeof food.armazenamentoInadequado !== "boolean") food.armazenamentoInadequado = false;
+  });
+
+  window.__updateGameUI = updateInventory;
+  updateInventory();
+})();
+</script>
+
+<div id="marketScene" aria-label="Fase 2 — Mercado">
+<div class="market-bg"></div>
+<div class="market-hud"><div class="market-left"><div class="market-chip">🛒 Mercado</div><div class="market-chip">📅 Dia <span id="marketDay">1</span></div></div><div class="market-right"><div class="market-chip">⭐ <span id="marketPoints">120</span> pts</div><div class="market-chip">🎒 <span id="marketItems">0</span>/10</div></div></div>
+<button class="market-button mh-hort" data-market-sector="hort" aria-label="Hortifruti"></button>
+<button class="market-button mh-latic" data-market-sector="latic" aria-label="Laticínios"></button>
+<button class="market-button mh-carnes" data-market-sector="carnes" aria-label="Carnes"></button>
+<button class="market-button mh-padaria" data-market-sector="padaria" aria-label="Padaria"></button>
+<button class="market-button mh-cart" data-market-sector="cart" aria-label="Carrinho"></button>
+<button class="market-button mh-caixa" data-market-sector="caixa" aria-label="Caixa"></button>
+<button class="market-button mh-saida" data-market-sector="saida" aria-label="Saída do mercado"></button>
+<button class="market-button market-back" id="marketBackHome">🏠 Voltar para casa</button>
+<div id="hortScreen" aria-label="Hortifruti">
+  <div class="hort-bg" id="hortBg"></div>
+  <div class="hort-topbar">
+    <div class="hort-chips"><div class="hort-chip">📅 Dia <span id="hortDay">1</span></div></div>
+    <div class="hort-chips"><div class="hort-chip points">⭐ <span id="hortPoints">0</span> pts</div><div class="hort-chip bag">🛒 <span id="hortCartCount">0</span>/10</div></div>
+  </div>
+  <div class="hort-title">🥕 HORTIFRUTI <span id="hortPage">1/3</span></div>
+  <div class="hort-counter">🛒 <span id="hortCartSmall">0</span>/10 itens</div>
+  <button class="hort-arrow hort-prev" id="hortPrev" aria-label="Tela anterior">‹</button>
+  <button class="hort-arrow hort-next" id="hortNext" aria-label="Próxima tela">›</button>
+  <div id="hortHotspots"></div>
+  <div class="hort-buy-pop" id="hortBuyPop"></div>
+  <div class="hort-bottom">
+    <button class="hort-btn" id="hortBackMarket">↩️ Voltar ao mercado</button>
+    <div class="hort-help">🖱️ Clique em um alimento para comprar com seus pontos.</div>
+    <button class="hort-btn" id="hortCartBtn">🛒 Ver carrinho</button>
+  </div>
+</div>
+<div id="marketModal"><div id="marketCard"></div></div>
+</div>
+
+<script>
+(()=> {
+const market=document.getElementById("marketScene"), marketModal=document.getElementById("marketModal"), marketCard=document.getElementById("marketCard");
+const hortScreen=document.getElementById("hortScreen"), hortBg=document.getElementById("hortBg"), hortHotspots=document.getElementById("hortHotspots"), hortBuyPop=document.getElementById("hortBuyPop");
+const ms={
+  panels:[
+    {image:"hortifruti_tela1.png", foods:[
+      {id:"cenoura",name:"Cenoura",icon:"🥕",price:5,x:12,y:30,w:18,h:28},
+      {id:"tomate",name:"Tomate",icon:"🍅",price:6,x:31,y:30,w:18,h:28},
+      {id:"alface",name:"Alface",icon:"🥬",price:4,x:50,y:30,w:18,h:28},
+      {id:"banana",name:"Banana",icon:"🍌",price:5,x:69,y:30,w:18,h:28}
+    ]},
+    {image:"hortifruti_tela2.png", foods:[
+      {id:"alface",name:"Alface",icon:"🥬",price:5,x:12,y:30,w:15,h:20},
+      {id:"tomate",name:"Tomate",icon:"🍅",price:6,x:28,y:30,w:15,h:20},
+      {id:"cenoura",name:"Cenoura",icon:"🥕",price:5,x:44,y:30,w:15,h:20},
+      {id:"brocolis",name:"Brócolis",icon:"🥦",price:7,x:60,y:30,w:15,h:20},
+      {id:"banana",name:"Banana",icon:"🍌",price:4,x:76,y:30,w:15,h:20},
+      {id:"maca",name:"Maçã",icon:"🍎",price:6,x:12,y:48,w:15,h:20},
+      {id:"laranja",name:"Laranja",icon:"🍊",price:5,x:28,y:48,w:15,h:20},
+      {id:"cebola",name:"Cebola",icon:"🧅",price:4,x:44,y:48,w:15,h:20},
+      {id:"batata",name:"Batata",icon:"🥔",price:3,x:60,y:48,w:15,h:20},
+      {id:"pimentao",name:"Pimentão",icon:"🫑",price:6,x:76,y:48,w:15,h:20}
+    ]},
+    {image:"hortifruti_tela3.png", foods:[
+      {id:"cenoura",name:"Cenoura",icon:"🥕",price:5,x:12,y:30,w:15,h:22},
+      {id:"tomate",name:"Tomate",icon:"🍅",price:6,x:31,y:30,w:15,h:22},
+      {id:"alface",name:"Alface",icon:"🥬",price:4,x:50,y:30,w:15,h:22},
+      {id:"banana",name:"Banana",icon:"🍌",price:5,x:69,y:30,w:15,h:22},
+      {id:"maca",name:"Maçã",icon:"🍎",price:7,x:86,y:30,w:9,h:22}
+    ]}
+  ],
+  panel:0,visit:0,cart:[]
+};
+function sync(){const s=window.__gameState;if(!s)return;document.getElementById("marketDay").textContent=s.day;document.getElementById("marketPoints").textContent=s.score;document.getElementById("marketItems").textContent=ms.cart.length;document.getElementById("hortDay").textContent=s.day;document.getElementById("hortPoints").textContent=s.score;document.getElementById("hortCartCount").textContent=ms.cart.length;document.getElementById("hortCartSmall").textContent=ms.cart.length}
+function openMarket(){market.classList.add("active");ms.visit++;ms.panel=0;sync()}
+function closeM(){marketModal.classList.remove("open")}
+function menu(){marketCard.innerHTML=`<button class="m-close" id="mc">✕</button><h2>🛒 Mercado</h2><p class="m-sub">Escolha um setor para explorar.</p><div class="m-menu"><button data-x="hort">🥕 Explorar Hortifruti</button><button data-x="latic">🥛 Laticínios</button><button data-x="carnes">🥩 Carnes</button><button data-x="padaria">🍞 Padaria</button><button data-x="cart">🛒 Ver carrinho</button><button data-x="caixa">🧾 Ir para o caixa</button></div>`;marketModal.classList.add("open");mc.onclick=closeM;marketCard.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>area(b.dataset.x))}
+function openHort(p=0){closeM();ms.visit++;ms.panel=p;hortScreen.classList.add("open");renderHort();sync()}
+function closeHort(){hortScreen.classList.remove("open")}
+function renderHort(){const a=ms.panels[ms.panel];hortBg.style.backgroundImage=`url("${a.image}")`;document.getElementById("hortPage").textContent=`${ms.panel+1}/${ms.panels.length}`;hortHotspots.innerHTML=a.foods.map((x,i)=>`<button class="hort-hotspot" data-buy="${i}" aria-label="Comprar ${x.name}" title="${x.name} — ${x.price} pontos" style="left:${x.x}%;top:${x.y}%;width:${x.w}%;height:${x.h}%"></button>`).join("");hortHotspots.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buy(a.foods[+b.dataset.buy]));sync()}
+function buy(p){const s=window.__gameState;if(!s)return;if(ms.cart.length>=10){showPop("🛒 Carrinho cheio — máximo de 10 itens.");return}if(s.score<p.price){showPop("⭐ Pontos insuficientes para comprar este alimento.");return}s.score-=p.price;ms.cart.push({...p,visit:ms.visit});if(window.__updateGameUI)window.__updateGameUI();sync();showPop(`${p.icon} ${p.name} comprado! −${p.price} pts`)}
+function showPop(msg){hortBuyPop.textContent=msg;hortBuyPop.classList.add("show");clearTimeout(showPop.t);showPop.t=setTimeout(()=>hortBuyPop.classList.remove("show"),1300)}
+function showCart(){marketCard.innerHTML=`<button class="m-close" id="mc">✕</button><h2>🛒 Carrinho</h2><p class="m-sub">${ms.cart.length?ms.cart.map((p,i)=>`${i+1}. ${p.icon} ${p.name} — ${p.price} pts`).join("<br>"):"O carrinho está vazio."}</p><div class="m-sub" style="margin-top:12px;font-weight:900">Total: ${ms.cart.reduce((t,p)=>t+p.price,0)} pts</div>`;marketModal.classList.add("open");mc.onclick=closeM}
+function area(a){if(a==="hort")return openHort(0);if(a==="cart")return showCart();if(a==="caixa"){marketCard.innerHTML=`<button class="m-close" id="mc">✕</button><h2>🧾 Caixa</h2><p class="m-sub">As compras serão finalizadas aqui em uma próxima etapa.</p>`}else{const n={latic:"🥛 Laticínios",carnes:"🥩 Carnes",padaria:"🍞 Padaria"};marketCard.innerHTML=`<button class="m-close" id="mc">✕</button><h2>${n[a]}</h2><p class="m-sub">Este setor receberá a mesma lógica de corredor da Hortifruti.</p>`}marketModal.classList.add("open");mc.onclick=closeM}
+document.querySelectorAll("[data-market-sector]").forEach(b=>b.onclick=()=>area(b.dataset.marketSector));
+document.getElementById("marketBackHome").onclick=()=>{closeHort();closeM();market.classList.remove("active")};
+document.getElementById("hortBackMarket").onclick=()=>{closeHort();sync()};
+document.getElementById("hortPrev").onclick=()=>{ms.panel=Math.max(0,ms.panel-1);renderHort()};
+document.getElementById("hortNext").onclick=()=>{ms.panel=Math.min(ms.panels.length-1,ms.panel+1);renderHort()};
+document.getElementById("hortCartBtn").onclick=showCart;
+marketModal.onclick=e=>{if(e.target===marketModal)closeM()};window.__openMarket=openMarket;window.__openHort=openHort;
+})();
+</script>
+</body>
+</html>
+
+<!-- professional interaction layer enabled -->
