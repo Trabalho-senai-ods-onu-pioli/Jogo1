@@ -564,6 +564,8 @@
 .m-sign{display:inline-block;background:#fff2b3;border:3px solid #6c5528;border-radius:8px;padding:7px 10px;font-weight:900;margin-bottom:10px}.m-food{font-size:70px;height:100px;display:flex;align-items:center;justify-content:center}
 .m-buy{margin-top:8px;background:#1d7a4b;color:#fff;border:0;border-radius:12px;padding:10px;width:100%;font-weight:900;cursor:pointer}
 @media(max-width:720px){#marketScene .market-chip{font-size:13px;padding:9px 11px}.m-menu{grid-template-columns:1fr}.m-products{grid-template-columns:1fr}.m-shelf{overflow:auto}}
+
+.checkout-panel,.checkout-success{max-width:760px;margin:auto}.receipt{margin-top:18px;background:#111a1f;border:1px solid var(--line);border-radius:16px;padding:14px}.receipt-row{display:grid;grid-template-columns:1fr auto auto;gap:18px;align-items:center;padding:11px 4px;border-bottom:1px solid rgba(255,255,255,.07)}.receipt-row b{color:#ffd76a}.receipt-line{height:1px;background:var(--line);margin:8px 0}.receipt-total{display:flex;justify-content:space-between;align-items:center;padding-top:10px;font-size:18px}.receipt-total strong{font-size:24px;color:#ffd76a}.checkout-note,.checkout-hint{margin:14px 0;color:#b9c5cb;line-height:1.5}.checkout-success{text-align:center;padding:20px}.checkout-icon{font-size:64px;margin-bottom:8px}.checkout-success h2{font-size:28px;margin:8px 0}.checkout-success .receipt-total{justify-content:center;gap:10px;margin:18px 0}
 </style>
 </head>
 <body>
@@ -712,6 +714,13 @@
         descricao: "Produto que deve ser bem planejado para evitar sobras.",
         quantidade: 3, validade: 2, local: "Despensa", armazenamentoIdeal: "Despensa", validadeRestante: 2, armazenamentoInadequado: false
       }
+,
+      arroz_feijao_pronto: { id:"arroz_feijao_pronto", nome:"Arroz com Feijão", emoji:"🍛", descricao:"Prato preparado na cozinha.", quantidade:0, validade:2, local:"Preparado", armazenamentoIdeal:"Geladeira", validadeRestante:2, armazenamentoInadequado:false, tipo:"pronto" },
+      sopa_legumes_pronta: { id:"sopa_legumes_pronta", nome:"Sopa de Legumes", emoji:"🍲", descricao:"Sopa preparada com legumes.", quantidade:0, validade:2, local:"Preparado", armazenamentoIdeal:"Geladeira", validadeRestante:2, armazenamentoInadequado:false, tipo:"pronto" },
+      salada_pronta: { id:"salada_pronta", nome:"Salada", emoji:"🥗", descricao:"Salada preparada com ingredientes frescos.", quantidade:0, validade:1, local:"Preparado", armazenamentoIdeal:"Geladeira", validadeRestante:1, armazenamentoInadequado:false, tipo:"pronto" },
+      sanduiche_pronto: { id:"sanduiche_pronto", nome:"Sanduíche", emoji:"🥪", descricao:"Sanduíche preparado na cozinha.", quantidade:0, validade:1, local:"Preparado", armazenamentoIdeal:"Geladeira", validadeRestante:1, armazenamentoInadequado:false, tipo:"pronto" },
+      salada_pimentao_pronta: { id:"salada_pimentao_pronta", nome:"Salada de Pimentão", emoji:"🥗", descricao:"Salada preparada com pimentão e tomate.", quantidade:0, validade:1, local:"Preparado", armazenamentoIdeal:"Geladeira", validadeRestante:1, armazenamentoInadequado:false, tipo:"pronto" },
+      vitamina_pronta: { id:"vitamina_pronta", nome:"Vitamina de Banana", emoji:"🥤", descricao:"Vitamina preparada com leite e banana.", quantidade:0, validade:1, local:"Preparado", armazenamentoIdeal:"Geladeira", validadeRestante:1, armazenamentoInadequado:false, tipo:"pronto" }
     }
   };
 
@@ -738,7 +747,7 @@
     const strip = $("inventoryItems");
     strip.innerHTML = "";
     Object.entries(grouped).slice(0, 8).forEach(([id, qty]) => {
-      const item = state.foods[id];
+      const item = state.foods[id] || {emoji:"🍽️",nome:id};
       const slot = document.createElement("span");
       slot.className = "inv-slot";
       slot.innerHTML = `<span class="inv-emoji">${item.emoji}</span><span class="inv-count">×${qty}</span>`;
@@ -771,7 +780,7 @@
     const entries = Object.entries(grouped);
 
     const rows = entries.length ? entries.map(([id, qty]) => {
-      const item = state.foods[id];
+      const item = state.foods[id] || {emoji:"🍽️",nome:id};
       return `
         <div class="inventory-row">
           <div class="inv-big">${item.emoji}</div>
@@ -876,8 +885,12 @@
         ${food.validade <= 1 ? `<div class="warning">⚠️ Este alimento merece atenção para evitar desperdício.</div>` : ""}
         <div class="actions">
           ${fromInventory
-            ? `<button class="btn primary" id="consumeFood">🍽️ Usar 1 unidade</button>
-               <button class="btn" id="storeFromInventory">📦 Guardar 1 unidade</button>`
+            ? (food.tipo === "residuo"
+              ? `<button class="btn primary" id="discardResidue">🗑️ Descartar na lixeira</button>`
+              : food.tipo === "pronto"
+                ? `<button class="btn primary" id="consumeFood">🍽️ Consumir 1 unidade</button>
+                   <button class="btn" id="storeFromInventory">📦 Guardar 1 unidade</button>`
+                : `<button class="btn" id="storeFromInventory">📦 Guardar 1 unidade</button>`)
             : `<button class="btn primary" id="takeFood">✋ Pegar</button>
                <button class="btn" id="storeFood">📦 Guardar</button>`}
         </div>
@@ -885,8 +898,9 @@
     `);
 
     if (fromInventory) {
-      $("consumeFood").addEventListener("click", () => consumeFood(id));
-      $("storeFromInventory").addEventListener("click", () => chooseStorage(id));
+      if ($("consumeFood")) $("consumeFood").addEventListener("click", () => consumeFood(id));
+      if ($("discardResidue")) $("discardResidue").addEventListener("click", () => discardResidue(id));
+      if ($("storeFromInventory")) $("storeFromInventory").addEventListener("click", () => chooseStorage(id));
     } else {
       $("takeFood").addEventListener("click", () => takeFood(id));
       $("storeFood").addEventListener("click", () => chooseStorage(id));
@@ -915,17 +929,103 @@
   }
 
 
+  function createResidue() {
+    const id = `residuo_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+    state.foods[id] = { id, nome:"Resíduo orgânico", emoji:"♻️", descricao:"Resíduo gerado durante o preparo. Descarte-o na lixeira.", quantidade:1, validade:2, local:"Inventário", armazenamentoIdeal:"Lixeira", validadeRestante:2, armazenamentoInadequado:false, tipo:"residuo", prazoResiduo:2 };
+    return id;
+  }
+
+  const recipes = [
+    {id:"arroz_feijao", nome:"Arroz com Feijão", emoji:"🍛", ingredientes:{arroz:1,feijao:1}, pontos:25, resultado:"arroz_feijao_pronto", residuo:1},
+    {id:"sopa_legumes", nome:"Sopa de Legumes", emoji:"🍲", ingredientes:{cenoura:1,brocolis:1}, pontos:25, resultado:"sopa_legumes_pronta", residuo:2},
+    {id:"salada", nome:"Salada", emoji:"🥗", ingredientes:{tomate:1,alface:1}, pontos:25, resultado:"salada_pronta", residuo:1},
+    {id:"sanduiche", nome:"Sanduíche", emoji:"🥪", ingredientes:{pao:1,tomate:1}, pontos:25, resultado:"sanduiche_pronto", residuo:1},
+    {id:"salada_pimentao", nome:"Salada de Pimentão", emoji:"🥗", ingredientes:{pimentao:1,tomate:1}, pontos:25, resultado:"salada_pimentao_pronta", residuo:1},
+    {id:"vitamina", nome:"Vitamina de Banana", emoji:"🥤", ingredientes:{leite:1,banana:1}, pontos:25, resultado:"vitamina_pronta", residuo:1}
+  ];
+
+  function hasIngredients(recipe) {
+    return Object.entries(recipe.ingredientes).every(([foodId, qty]) => state.inventory.filter(id => id === foodId).length >= qty);
+  }
+
+  function recipeIngredientLine(recipe) {
+    return Object.entries(recipe.ingredientes).map(([id,q]) => {
+      const have = state.inventory.filter(x => x === id).length;
+      const item = state.foods[id] || {emoji:"🍽️",nome:id};
+      return `${have >= q ? "✓" : "✗"} ${item.emoji} ${item.nome} ×${q}`;
+    }).join(" · ");
+  }
+
+  function openKitchen() {
+    const available = recipes.filter(hasIngredients);
+    const unavailable = recipes.filter(r => !hasIngredients(r));
+    const recipeCard = r => {
+      const ok = hasIngredients(r);
+      return `<div class="card" style="margin-top:10px;opacity:${ok?1:.82}">
+        <div class="food-title"><div class="food-big">${r.emoji}</div><div><h3>${r.nome}</h3><div class="muted">${recipeIngredientLine(r)}</div></div></div>
+        <div class="actions">${ok ? `<button class="btn primary" data-kitchen-recipe="${r.id}">🍳 Cozinhar</button>` : `<span class="muted">Faltam ingredientes.</span>`}</div>
+      </div>`;
+    };
+    openModal("🍳 Cozinha — Livro de Receitas", `
+      <div class="card">
+        <div class="food-title"><div class="food-big">📖</div><div><h3>Livro de receitas</h3><div class="muted">As receitas estão separadas conforme os ingredientes disponíveis no inventário.</div></div></div>
+      </div>
+      <div style="margin-top:14px"><h3 style="margin:0 0 4px">🟢 Receitas disponíveis (${available.length})</h3>
+        ${available.length ? available.map(recipeCard).join("") : `<div class="card"><div class="muted">Nenhuma receita pode ser preparada agora.</div></div>`}
+      </div>
+      <div style="margin-top:18px"><h3 style="margin:0 0 4px">🔒 Outras receitas (${unavailable.length})</h3>
+        ${unavailable.map(recipeCard).join("")}
+      </div>
+    `);
+    content.querySelectorAll("[data-kitchen-recipe]").forEach(btn => btn.addEventListener("click", () => prepareRecipe(btn.dataset.kitchenRecipe)));
+  }
+
+  function openRecipeMenu(foodId) {
+    openKitchen();
+  }
+
+  function prepareRecipe(recipeId) {
+    const recipe = recipes.find(r => r.id === recipeId);
+    if (!recipe || !hasIngredients(recipe)) { setMessage("🍳 Você ainda não possui todos os ingredientes dessa receita."); return; }
+    Object.entries(recipe.ingredientes).forEach(([foodId, qty]) => {
+      for (let i=0; i<qty; i++) {
+        const index = state.inventory.indexOf(foodId);
+        if(index !== -1) state.inventory.splice(index,1);
+      }
+    });
+    const result = state.foods[recipe.resultado];
+    result.quantidade = (result.quantidade || 0) + 1;
+    result.local = "Preparado";
+    result.validadeRestante = result.validade;
+    state.inventory.push(recipe.resultado);
+    for(let i=0;i<recipe.residuo;i++) state.inventory.push(createResidue());
+    addScore(recipe.pontos); addCombo(); state.sustainability=Math.min(100,state.sustainability+3);
+    updateInventory(); closeModal();
+    setMessage(`${recipe.emoji} ${recipe.nome} preparado! +${recipe.pontos} pontos. O prato foi para o inventário e ${recipe.residuo} resíduo(s) foram gerados.`);
+  }
+
   function consumeFood(id) {
+    const food = state.foods[id];
+    if (!food || food.tipo !== "pronto") { openKitchen(); return; }
     const index = state.inventory.indexOf(id);
-    if (index === -1) return;
-    state.inventory.splice(index, 1);
-    addScore(15);
-    addCombo();
-    state.waste = Math.max(0, state.waste - 2);
-    state.sustainability = Math.min(100, state.sustainability + 3);
-    updateInventory();
-    closeModal();
-    setMessage(`${state.foods[id].emoji} ${state.foods[id].nome} utilizado. +15 pontos e +3 sustentabilidade.`);
+    if(index === -1) return;
+    state.inventory.splice(index,1);
+    food.quantidade = Math.max(0, food.quantidade - 1);
+    state.score += 10;
+    state.sustainability = Math.min(100,state.sustainability+2);
+    updateInventory(); closeModal();
+    setMessage(`${food.emoji} ${food.nome} consumido. +10 pontos e sem desperdício do prato.`);
+  }
+
+  function discardResidue(id) {
+    const index = state.inventory.indexOf(id);
+    if(index === -1) return;
+    state.inventory.splice(index,1);
+    const food=state.foods[id];
+    food.quantidade=Math.max(0,(food.quantidade||0)-1);
+    state.sustainability=Math.min(100,state.sustainability+2);
+    addScore(5); addCombo(); updateInventory(); closeModal();
+    setMessage("🗑️ Resíduo descartado corretamente. +5 pontos.");
   }
 
   function returnToStorage(id) {
@@ -974,7 +1074,7 @@
     }
 
     const food = state.foods[id];
-    const correct = food.armazenamentoIdeal === destination;
+    const correct = food.armazenamentoIdeal && food.armazenamentoIdeal === destination;
 
     state.inventory.splice(index, 1);
     food.quantidade++;
@@ -1014,6 +1114,30 @@
     state.day++;
 
     const spoiled = [];
+    let expiredResidues = 0;
+    const inventoryFoodIds = [...new Set(state.inventory)];
+    inventoryFoodIds.forEach(id => {
+      const food = state.foods[id];
+      if (!food || (food.tipo !== "residuo" && food.tipo !== "pronto")) return;
+      food.validadeRestante = Math.max(0, (food.validadeRestante ?? food.validade) - 1);
+      if (food.validadeRestante <= 0) {
+        const count = state.inventory.filter(x => x === id).length;
+        state.inventory = state.inventory.filter(x => x !== id);
+        if (food.tipo === "residuo") expiredResidues += count;
+        else {
+          state.waste = Math.min(100, state.waste + count * 5);
+          state.score = Math.max(0, state.score - count * 5);
+          state.sustainability = Math.max(0, state.sustainability - count * 2);
+          food.quantidade = Math.max(0, food.quantidade - count);
+          spoiled.push(`${food.emoji} ${food.nome} (${count})`);
+        }
+      }
+    });
+    if (expiredResidues) {
+      state.waste = Math.min(100, state.waste + expiredResidues * 5);
+      state.score = Math.max(0, state.score - expiredResidues * 10);
+      state.sustainability = Math.max(0, state.sustainability - expiredResidues * 3);
+    }
     Object.values(state.foods).forEach(food => {
       if (food.quantidade <= 0) return;
 
@@ -1032,10 +1156,11 @@
 
     $("score").textContent = state.score;
 
-    if (spoiled.length) {
-      setMessage(`📅 Dia ${state.day}: alguns alimentos estragaram — ${spoiled.join(", ")}. O armazenamento incorreto acelera a perda.`);
+    if (spoiled.length || expiredResidues) {
+      const residueMsg = expiredResidues ? ` ${expiredResidues} resíduo(s) não foram descartados a tempo e causaram perda de pontos.` : "";
+      setMessage(`📅 Dia ${state.day}: ${spoiled.length ? `alguns alimentos estragaram — ${spoiled.join(", ")}.` : "Nenhum alimento estragou."}${residueMsg}`);
     } else {
-      setMessage(`📅 Dia ${state.day}: nenhum alimento estragou. Continue cuidando do armazenamento.`);
+      setMessage(`📅 Dia ${state.day}: nenhum alimento estragou e todos os resíduos continuam dentro do prazo.`);
     }
 
     updateInventory();
@@ -1049,19 +1174,7 @@
       setMessage("Você abriu a despensa. Planejamento e armazenamento correto ajudam a reduzir desperdícios.");
       openStorage("Despensa");
     } else if (type === "kitchen") {
-      openModal("🍳 Cozinha", `
-        <div class="card">
-          <div class="food-title">
-            <div class="food-big">🍳</div>
-            <div>
-              <h3>Área de preparo</h3>
-              <div class="muted">A cozinha será usada para preparar receitas. Nesta primeira versão, ela é apenas uma prévia da próxima mecânica.</div>
-            </div>
-          </div>
-          <div class="actions"><button class="btn primary" id="okKitchen">Entendi</button></div>
-        </div>
-      `);
-      $("okKitchen").addEventListener("click", closeModal);
+      openKitchen();
     } else if (type === "waste") {
       openModal("🗑️ Resíduos", `
         <div class="card">
@@ -1206,8 +1319,117 @@ function confirmPurchase(){
 }
 function cancelPurchase(){ms.pendingPurchase=null;if(hortBuyPop)hortBuyPop.classList.remove("show")}
 function showMessage(msg){ms.pendingPurchase=null;hortBuyPop.innerHTML=`<div class="buy-message">${msg}</div>`;hortBuyPop.classList.add("show");clearTimeout(showMessage.t);showMessage.t=setTimeout(()=>hortBuyPop.classList.remove("show"),1400)}
-function showCart(){marketCard.innerHTML=`<button class="m-close" id="mc">✕</button><h2>🛒 Carrinho</h2><p class="m-sub">${ms.cart.length?ms.cart.map((p,i)=>`${i+1}. ${p.icon} ${p.name} — ${p.price} pts`).join("<br>"):"O carrinho está vazio."}</p><div class="m-sub" style="margin-top:12px;font-weight:900">Total: ${ms.cart.reduce((t,p)=>t+p.price,0)} pts</div>`;marketModal.classList.add("open");mc.onclick=closeM}
-function area(a){if(a==="hort")return openHort(0);if(a==="cart")return showCart();if(a==="caixa"){marketCard.innerHTML=`<button class="m-close" id="mc">✕</button><h2>🧾 Caixa</h2><p class="m-sub">As compras serão finalizadas aqui em uma próxima etapa.</p>`}else{const n={latic:"🥛 Laticínios",carnes:"🥩 Carnes",padaria:"🍞 Padaria"};marketCard.innerHTML=`<button class="m-close" id="mc">✕</button><h2>${n[a]}</h2><p class="m-sub">Este setor receberá a mesma lógica de corredor da Hortifruti.</p>`}marketModal.classList.add("open");mc.onclick=closeM}
+function cartTotal(){return ms.cart.reduce((t,p)=>t+p.price,0)}
+function changeCartItem(index,delta){
+  const p=ms.cart[index];
+  const s=window.__gameState;
+  if(!p||!s)return;
+  if(delta>0){
+    if(ms.cart.length>=10){showMessage("🛒 Carrinho cheio — máximo de 10 itens.");return;}
+    if(s.score<p.price){showMessage("⭐ Você não tem pontos suficientes para adicionar outro.");return;}
+    s.score-=p.price;
+    ms.cart.push({...p,visit:ms.visit});
+  }else{
+    ms.cart.splice(index,1);
+    s.score+=p.price;
+  }
+  if(window.__updateGameUI)window.__updateGameUI();
+  sync();
+  showCart();
+}
+function removeCartItem(index){changeCartItem(index,-1)}
+function showCart(){
+  const grouped=[];
+  ms.cart.forEach((p,index)=>{
+    const key=p.id||p.name;
+    let g=grouped.find(x=>x.key===key);
+    if(!g){g={key,id:p.id,name:p.name,icon:p.icon,price:p.price,indices:[]};grouped.push(g)}
+    g.indices.push(index);
+  });
+  marketCard.innerHTML=`<div class="cart-panel">
+    <button class="m-close" id="mc">✕</button>
+    <h2>🛒 Meu Carrinho</h2>
+    <p class="cart-sub">Revise os alimentos que você escolheu antes de ir ao caixa.</p>
+    ${grouped.length?`<div class="cart-list">${grouped.map((g,i)=>`<div class="cart-row">
+      <div class="cart-icon">${g.icon}</div>
+      <div><div class="cart-name">${g.name}</div><div class="cart-price">${g.price} pts cada</div></div>
+      <div class="cart-actions"><button class="cart-mini" data-minus="${i}" aria-label="Diminuir">−</button><span class="cart-qty">${g.indices.length}</span><button class="cart-mini" data-plus="${i}" aria-label="Aumentar">+</button><button class="cart-mini remove" data-remove="${i}" aria-label="Remover">🗑️</button></div>
+    </div>`).join("")}</div>`:`<div class="cart-empty">🛒 Seu carrinho está vazio.<br><br>Volte para a Hortifruti e escolha alguns alimentos.</div>`}
+    <div class="cart-summary"><span>⭐ Pontos gastos</span><span class="cart-total">${cartTotal()} pts</span></div>
+    <div class="cart-note">Ao retirar um alimento, os pontos daquele item voltam para você. Adicionar outro item desconta os pontos normalmente.</div>
+    <div class="cart-footer"><button class="cart-main-btn cart-continue" id="cartContinue">🥕 Continuar comprando</button>${grouped.length?`<button class="cart-main-btn cart-checkout" id="cartCheckout">🧾 Ir para o caixa</button>`:""}</div>
+  </div>`;
+  marketModal.classList.add("open");
+  document.getElementById("mc").onclick=closeM;
+  document.getElementById("cartContinue").onclick=()=>{closeM();openHort(ms.panel)};
+  marketCard.querySelectorAll("[data-minus]").forEach(b=>b.onclick=()=>{const g=grouped[+b.dataset.minus];removeCartItem(g.indices[g.indices.length-1])});
+  marketCard.querySelectorAll("[data-plus]").forEach(b=>b.onclick=()=>{const g=grouped[+b.dataset.plus];changeCartItem(g.indices[0],1)});
+  marketCard.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{const g=grouped[+b.dataset.remove];g.indices.slice().reverse().forEach(idx=>removeCartItem(idx))});
+  const checkout=document.getElementById("cartCheckout");
+  if(checkout)checkout.onclick=checkout;
+}
+ms.purchaseFinalized=false; ms.delivered=false;
+const marketFoodProfiles={
+  cenoura:{ideal:"Geladeira",validade:7,emoji:"🥕"}, tomate:{ideal:"Geladeira",validade:7,emoji:"🍅"}, brocolis:{ideal:"Geladeira",validade:6,emoji:"🥦"},
+  alface:{ideal:"Geladeira",validade:5,emoji:"🥬"}, banana:{ideal:"Despensa",validade:5,emoji:"🍌"}, maca:{ideal:"Geladeira",validade:10,emoji:"🍎"},
+  batata:{ideal:"Despensa",validade:20,emoji:"🥔"}, milho:{ideal:"Despensa",validade:15,emoji:"🌽"}, pimentao:{ideal:"Geladeira",validade:7,emoji:"🫑"},
+  feijao:{ideal:"Despensa",validade:25,emoji:"🫘"}, arroz:{ideal:"Despensa",validade:20,emoji:"🍚"}, pao:{ideal:"Despensa",validade:4,emoji:"🍞"}, leite:{ideal:"Geladeira",validade:7,emoji:"🥛"}
+};
+function ensureFoodInState(p){
+  const s=window.__gameState; if(!s) return;
+  const profile=marketFoodProfiles[p.id] || {ideal:"Geladeira",validade:7,emoji:p.icon||"🍽️"};
+  if(!s.foods[p.id]) s.foods[p.id]={id:p.id,nome:p.name,emoji:p.icon||profile.emoji,descricao:`${p.name} comprado no mercado.`,quantidade:0,validade:profile.validade,local:"Compras",armazenamentoIdeal:profile.ideal,validadeRestante:profile.validade,armazenamentoInadequado:false};
+  else { const food=s.foods[p.id]; food.emoji=food.emoji || p.icon || profile.emoji; food.armazenamentoIdeal=profile.ideal; }
+}
+function deliverCartToInventory(){
+  const s=window.__gameState;
+  if(!s || ms.delivered) return true;
+  if(s.inventory.length + ms.cart.length > 30){
+    showMessage("🎒 Não há espaço suficiente no inventário.");
+    return false;
+  }
+  ms.cart.forEach(p=>{
+    ensureFoodInState(p);
+    const food=s.foods[p.id]; const profile=marketFoodProfiles[p.id] || {ideal:food.armazenamentoIdeal || "Geladeira",validade:food.validade || 7,emoji:p.icon||"🍽️"};
+    food.emoji=p.icon || profile.emoji || food.emoji || "🍽️";
+    food.armazenamentoIdeal=profile.ideal; food.validade=profile.validade;
+    food.local="Compras"; food.armazenamentoInadequado=false; food.validadeRestante=profile.validade;
+    s.inventory.push(p.id);
+  });
+  ms.delivered=true;
+  if(window.__updateGameUI)window.__updateGameUI();
+  return true;
+}
+function finalizeMarketPurchase(){
+  if(!ms.cart.length){showMessage("🛒 Seu carrinho está vazio.");return;}
+  if(!deliverCartToInventory()) return;
+  ms.purchaseFinalized=true;
+  const count=ms.cart.length;
+  marketCard.innerHTML=`<div class="checkout-success"><div class="checkout-icon">🧾</div><h2>Compra finalizada!</h2><p>✅ Seus alimentos já foram salvos no inventário.</p><div class="receipt-total">🎒 ${count} itens adicionados</div><p class="checkout-hint">Agora vá até a saída para voltar para a Casa e escolher onde armazenar cada alimento.</p><button class="cart-main-btn cart-checkout" id="goExit">🚪 Ir para a saída</button></div>`;
+  document.getElementById("goExit").onclick=()=>{closeM();showMessage("🚪 Procure a saída do mercado para voltar para casa.")};
+}
+function checkout(){
+  const grouped=[]; ms.cart.forEach((p,i)=>{let g=grouped.find(x=>x.id===p.id);if(!g){g={id:p.id,name:p.name,icon:p.icon,price:p.price,qty:0};grouped.push(g)}g.qty++});
+  const total=cartTotal();
+  marketCard.innerHTML=`<div class="checkout-panel"><button class="m-close" id="mc">✕</button><h2>🧾 Caixa</h2><p class="m-sub">Confira sua compra antes de finalizar.</p><div class="receipt">${grouped.map(g=>`<div class="receipt-row"><span>${g.icon} ${g.name}</span><span>×${g.qty}</span><b>${g.price*g.qty} pts</b></div>`).join("")}<div class="receipt-line"></div><div class="receipt-total"><span>Total</span><strong>${total} pts</strong></div></div><p class="checkout-note">⭐ Os pontos já foram descontados quando você colocou os alimentos no carrinho. Finalizar aqui não cobra novamente.</p><div class="cart-footer"><button class="cart-main-btn cart-continue" id="backCart">🛒 Voltar ao carrinho</button><button class="cart-main-btn cart-checkout" id="finishPurchase">✅ Finalizar compra</button></div></div>`;
+  marketModal.classList.add("open"); document.getElementById("mc").onclick=closeM; document.getElementById("backCart").onclick=showCart; document.getElementById("finishPurchase").onclick=finalizeMarketPurchase;
+}
+function leaveMarket(){
+  if(!ms.purchaseFinalized){showMessage("🧾 Primeiro finalize sua compra no caixa.");return;}
+  const s=window.__gameState; if(!s)return;
+  if(!deliverCartToInventory()) return;
+  ms.cart=[]; ms.purchaseFinalized=false; ms.delivered=false; closeM(); closeHort(); market.classList.remove("active");
+  setMessage("🏠 Você voltou para casa com suas compras. Agora escolha onde armazenar cada alimento.");
+}
+function area(a){
+  if(a==="hort")return openHort(0);
+  if(a==="cart")return showCart();
+  if(a==="caixa")return checkout();
+  if(a==="saida")return leaveMarket();
+  const n={latic:"🥛 Laticínios",carnes:"🥩 Carnes",padaria:"🍞 Padaria"};
+  marketCard.innerHTML=`<button class="m-close" id="mc">✕</button><h2>${n[a]}</h2><p class="m-sub">Este setor receberá a mesma lógica de corredor da Hortifruti.</p>`;
+  marketModal.classList.add("open"); document.getElementById("mc").onclick=closeM;
+}
 document.querySelectorAll("[data-market-sector]").forEach(b=>b.onclick=()=>area(b.dataset.marketSector));
 document.getElementById("marketBackHome").onclick=()=>{closeHort();closeM();market.classList.remove("active")};
 document.getElementById("hortBackMarket").onclick=()=>{closeHort();sync()};
